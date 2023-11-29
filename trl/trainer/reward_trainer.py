@@ -231,11 +231,9 @@ class RewardTrainer(Trainer):
 
         loss = nn.functional.binary_cross_entropy_with_logits(rewards_chosen, target).mean()
         
-
         if return_outputs:
             return loss, {
                 "rewards_chosen": rewards_chosen,
-                "rewards_rejected": rewards_rejected,
             }
         return loss
 
@@ -279,6 +277,7 @@ class RewardTrainer(Trainer):
         inputs: Dict[str, Union[torch.Tensor, Any]],
         prediction_loss_only: bool,
         ignore_keys: Optional[List[str]] = None,
+        bce_loss: bool = False
     ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor]]:
         inputs = self._prepare_inputs(inputs)
         if ignore_keys is None:
@@ -288,7 +287,10 @@ class RewardTrainer(Trainer):
                 ignore_keys = []
 
         with torch.no_grad():
-            loss, logits_dict = self.compute_loss(model, inputs, return_outputs=True)
+            if bce_loss:
+                loss, logits_dict = self.bce_loss(model, inputs, return_outputs=True)
+            else:
+                loss, logits_dict = self.compute_loss(model, inputs, return_outputs=True)
 
         if prediction_loss_only:
             return (loss, None, None)
