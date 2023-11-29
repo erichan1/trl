@@ -30,7 +30,7 @@ tqdm.pandas()
 
 @dataclass
 class ScriptArguments:
-    model_name: str = "facebook/opt-350m"
+    model_name: str = "facebook/opt-125m"
     """the model name"""
     dataset_name: str = "Anthropic/hh-rlhf"
     """the dataset name"""
@@ -108,21 +108,29 @@ train_dataset = load_dataset(args.dataset_name, split="train")
 
 # Tokenize chosen/rejected pairs of inputs
 # Adapt this section to your needs for custom datasets
-def preprocess_function(examples):
+def preprocess_function(examples, pointwise=False):
     new_examples = {
         "input_ids_chosen": [],
         "attention_mask_chosen": [],
         "input_ids_rejected": [],
         "attention_mask_rejected": [],
     }
-    for chosen, rejected in zip(examples["chosen"], examples["rejected"]):
-        tokenized_chosen = tokenizer(chosen)
-        tokenized_rejected = tokenizer(rejected)
+    if pointwise:
+        # put everything into chosen in dataset preproc
+        for chosen in examples["chosen"]:
+            tokenized_chosen = tokenizer(chosen)
 
-        new_examples["input_ids_chosen"].append(tokenized_chosen["input_ids"])
-        new_examples["attention_mask_chosen"].append(tokenized_chosen["attention_mask"])
-        new_examples["input_ids_rejected"].append(tokenized_rejected["input_ids"])
-        new_examples["attention_mask_rejected"].append(tokenized_rejected["attention_mask"])
+            new_examples["input_ids_chosen"].append(tokenized_chosen["input_ids"])
+            new_examples["attention_mask_chosen"].append(tokenized_chosen["attention_mask"])
+    else:
+        for chosen, rejected in zip(examples["chosen"], examples["rejected"]):
+            tokenized_chosen = tokenizer(chosen)
+            tokenized_rejected = tokenizer(rejected)
+
+            new_examples["input_ids_chosen"].append(tokenized_chosen["input_ids"])
+            new_examples["attention_mask_chosen"].append(tokenized_chosen["attention_mask"])
+            new_examples["input_ids_rejected"].append(tokenized_rejected["input_ids"])
+            new_examples["attention_mask_rejected"].append(tokenized_rejected["attention_mask"])
 
     return new_examples
 
