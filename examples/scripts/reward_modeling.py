@@ -36,7 +36,7 @@ class ScriptArguments:
     """the dataset name"""
     dataset_text_field: str = "text"
     """the text field of the dataset"""
-    eval_split: str = "none"
+    eval_split: str = "yes"
     """the dataset split to evaluate on; default to 'none' (no evaluation)"""
     load_in_8bit: bool = False
     """load the model in 8 bits precision"""
@@ -105,10 +105,11 @@ model = AutoModelForSequenceClassification.from_pretrained(
 tokenizer = AutoTokenizer.from_pretrained(args.model_name)
 train_dataset = load_dataset(args.dataset_name, split="train")
 
+pointwise = False  # hack - set this to do pointwise or not pointwise
 
 # Tokenize chosen/rejected pairs of inputs
 # Adapt this section to your needs for custom datasets
-def preprocess_function(examples, pointwise=False):
+def preprocess_function(examples):
     new_examples = {
         "input_ids_chosen": [],
         "attention_mask_chosen": [],
@@ -134,7 +135,6 @@ def preprocess_function(examples, pointwise=False):
 
     return new_examples
 
-
 # Preprocess the dataset and filter out examples that are longer than args.max_length
 train_dataset = train_dataset.map(
     preprocess_function,
@@ -143,13 +143,13 @@ train_dataset = train_dataset.map(
 )
 train_dataset = train_dataset.filter(
     lambda x: len(x["input_ids_chosen"]) <= args.reward_config.max_length
-    and len(x["input_ids_rejected"]) <= args.reward_config.max_length
+    and (pointwise or len(x["input_ids_rejected"]) <= args.reward_config.max_length)
 )
 
 if args.eval_split == "none":
     eval_dataset = None
 else:
-    eval_dataset = load_dataset(args.dataset_name, split=args.eval_split)
+    eval_dataset = load_dataset(args.dataset_name, split=args.eval_split) # for now just eval with the same dataset, but can easily change to another holdout dataset
 
     eval_dataset = eval_dataset.map(
         preprocess_function,
@@ -158,7 +158,7 @@ else:
     )
     eval_dataset = eval_dataset.filter(
         lambda x: len(x["input_ids_chosen"]) <= args.reward_config.max_length
-        and len(x["input_ids_rejected"]) <= args.reward_config.max_length
+        and (pointwise or len(x["input_ids_rejected"]) <= args.reward_config.max_length)
     )
 
 
