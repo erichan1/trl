@@ -36,7 +36,7 @@ class ScriptArguments:
     """the dataset name"""
     dataset_text_field: str = "text"
     """the text field of the dataset"""
-    eval_split: str = "yes"
+    eval_split: str = "test"
     """the dataset split to evaluate on; default to 'none' (no evaluation)"""
     load_in_8bit: bool = False
     """load the model in 8 bits precision"""
