@@ -210,6 +210,35 @@ class RewardTrainer(Trainer):
             optimizers,
             preprocess_logits_for_metrics,
         )
+    
+    def bce_loss(
+        self,
+        model: Union[PreTrainedModel, nn.Module],
+        inputs: Dict[str, Union[torch.Tensor, Any]],
+        return_outputs=False,
+    ):
+        if not self.use_reward_data_collator:
+            warnings.warn(
+                "The current compute_loss is implemented for RewardDataCollatorWithPadding,"
+                " if you are using a custom data collator make sure you know what you are doing or"
+                " implement your own compute_loss method."
+            )
+        rewards_chosen = model(
+            input_ids=inputs["input_ids_chosen"],
+            attention_mask=inputs["attention_mask_chosen"],
+        )[0]
+        target = inputs["target"]
+
+        loss = nn.functional.binary_cross_entropy_with_logits(rewards_chosen, target).mean()
+        
+
+        if return_outputs:
+            return loss, {
+                "rewards_chosen": rewards_chosen,
+                "rewards_rejected": rewards_rejected,
+            }
+        return loss
+
 
     def compute_loss(
         self,
